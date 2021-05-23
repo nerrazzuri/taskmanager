@@ -1,0 +1,10 @@
+<RCC>
+  <qresource prefix="resource">
+    <file>resources/icons/system_tray.ico</file>
+    <file>resources/icons/close.png</file>
+    <file>resources/icons/minimize.png</file>
+    <file>resources/icons/system_tray.png</file>
+    <file>resources/icons/check.png</file>
+    <file>resources/icons/clear.png</file>
+  </qresource>
+</RCC>
