@@ -1,23 +1,27 @@
 from math import ceil
 from datetime import datetime
-from PyQt5.QtCore import Qt, QDate, QRect
-from PyQt5.QtGui import QIcon, QCursor
-from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView, QTableWidgetItem, QSystemTrayIcon, QMenu, \
-    QPushButton, QToolButton, QGridLayout, QWidget, QHBoxLayout
+from PyQt5.QtCore import Qt, QDate, QObject
+from PyQt5.QtGui import QIcon, QColor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QHeaderView, QTableWidgetItem, QSystemTrayIcon, QMenu, QToolButton, QWidget, QHBoxLayout
+
+from PyQt5.QtCore import pyqtSignal
 
 from data import Data
 from interface import Ui_MainWindow
 from qss import qss
 import sys
-import resource_rc
+import schedule
+import time
+
+from threading import Thread
 
 
-class App:
-
+class App(QObject):
+    refresh = pyqtSignal(list)
     application = QApplication(sys.argv)
 
     def __init__(self):
-
+        super(App, self).__init__()
         self._window = QMainWindow()
         self._window.setStyleSheet(qss)
         self._ui = Ui_MainWindow()
@@ -26,8 +30,11 @@ class App:
         self._window.show()
 
         self._is_edit_mode = False
-        self._data = Data()
+        self._data = None
         self._pos = 0
+        self._items = None
+        self.t = None
+        self.thread_stop = False
 
         self._window.mousePressEvent = self.mousePressEvent
         self._window.mouseMoveEvent = self.mouseMoveEvent
@@ -44,10 +51,14 @@ class App:
 
         self._ui.start_date.setDate(QDate(year, month, day))
         self._ui.end_date.setDate(QDate(year, month, day))
-
+        self._ui.frame.setHidden(True)
+        self._is_edit_mode = True
         self.set_tray_icon()
         self.signals()
-        self.on_load()
+        self.get_data()
+        self.on_load(self._items)
+        self.move_app('topright')
+        self.job_thread()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -64,8 +75,13 @@ class App:
         self._ui.add_item.clicked.connect(self.add_item_button_clicked)
         self._ui.clear_item.clicked.connect(self.clear_item_button_clicked)
 
-        self._ui.close.clicked.connect(sys.exit)
+        self._ui.close.clicked.connect(self.on_close)
         self._ui.minimize.clicked.connect(self._window.showMinimized)
+        self.refresh.connect(self.on_load)
+
+    def on_close(self):
+        self.thread_stop = True
+        sys.exit(0)
 
     def set_tray_icon(self):
         tray_icon = QSystemTrayIcon()
@@ -92,13 +108,13 @@ class App:
             fr.moveCenter(center)
             self._window.move(fr.topLeft())
 
-    def on_load(self):
-        self.move_app('topright')
-        self._ui.frame.setHidden(True)
-        self._is_edit_mode = True
-
+    def get_data(self):
+        self._data = Data()
         self._data.connect()
-        items = self._data.select_item()
+        self._items = list(self._data.select_item())
+        self.refresh.emit(self._items)
+
+    def on_load(self, items):
         self._ui.task_table.setColumnHidden(0, True)
         self._ui.task_table.setRowCount(0)
         for index, item in enumerate(items):
@@ -117,30 +133,50 @@ class App:
 
             widget.setLayout(grid_layout)
 
+            today_date = datetime.now()
+            end_date = datetime.strptime(item[3], "%m/%d/%Y")
+
+            remaining = abs((end_date - today_date).days)
+
             self._ui.task_table.insertRow(index)
             self._ui.task_table.setItem(index, 0, QTableWidgetItem(str(item[0])))
             self._ui.task_table.setItem(index, 1, QTableWidgetItem(item[1]))
             self._ui.task_table.setItem(index, 2, QTableWidgetItem(item[2]))
             self._ui.task_table.setItem(index, 3, QTableWidgetItem(item[3]))
-            self._ui.task_table.setItem(index, 4, QTableWidgetItem(item[4]))
-            self._ui.task_table.setCellWidget(index, 5, widget)
-            complete_btn.setProperty('row', index)
+            self._ui.task_table.setItem(index, 4, QTableWidgetItem(str(remaining)))
+            if remaining < 100:
+                self._ui.task_table.item(index, 4).setBackground(QColor(255, 0, 0))
+            self._ui.task_table.setItem(index, 5, QTableWidgetItem(item[4]))
+            if item[4] == 'In Progress':
+                self._ui.task_table.setCellWidget(index, 6, widget)
+            complete_btn.setProperty('complete_row', index)
+            cancel_btn.setProperty('cancel_row', index)
             complete_btn.clicked.connect(self.on_cell_complete_button_clicked)
+            cancel_btn.clicked.connect(self.on_cell_cancel_button_clicked)
 
     def on_cell_complete_button_clicked(self):
         sender = self._window.sender()
-        row_number = sender.property('row')
+        row_number = sender.property('complete_row')
         id = self._ui.task_table.item(row_number, 0).text()
         self._data.update_item(int(id), 'Completed')
-        self.on_load()
+        self.get_data()
+        self.filter_box_text_changed(self._ui.filter_box.currentText())
+
+    def on_cell_cancel_button_clicked(self):
+        sender = self._window.sender()
+        row_number = sender.property('cancel_row')
+        id = self._ui.task_table.item(row_number, 0).text()
+        self._data.update_item(int(id), 'Cancelled')
+        self.get_data()
+        self.filter_box_text_changed(self._ui.filter_box.currentText())
 
     def add_item_button_clicked(self):
         task = self._ui.task_text.toPlainText()
         start_date = self._ui.start_date.text()
         end_date = self._ui.end_date.text()
         self._data.add_item(task, start_date, end_date)
-
-        self.on_load()
+        self.get_data()
+        self.filter_box_text_changed(self._ui.filter_box.currentText())
 
     def clear_item_button_clicked(self):
         self._ui.task_text.clear()
@@ -151,11 +187,41 @@ class App:
         items = self._data.select_item(val)
         self._ui.task_table.setRowCount(0)
         for index, item in enumerate(items):
+            complete_btn = QToolButton()
+            cancel_btn = QToolButton()
+            grid_layout = QHBoxLayout()
+            widget = QWidget()
+
+            complete_btn.setIcon(QIcon(':/resource/resources/icons/check.png'))
+            complete_btn.setMinimumSize(16, 16)
+            cancel_btn.setIcon(QIcon(':/resource/resources/icons/clear.png'))
+            cancel_btn.setMinimumSize(16, 16)
+
+            grid_layout.addWidget(complete_btn)
+            grid_layout.addWidget(cancel_btn)
+
+            widget.setLayout(grid_layout)
+
+            today_date = datetime.now()
+            end_date = datetime.strptime(item[3], "%m/%d/%Y")
+
+            remaining = abs((end_date - today_date).days)
+
             self._ui.task_table.insertRow(index)
+            self._ui.task_table.setItem(index, 0, QTableWidgetItem(str(item[0])))
             self._ui.task_table.setItem(index, 1, QTableWidgetItem(item[1]))
             self._ui.task_table.setItem(index, 2, QTableWidgetItem(item[2]))
             self._ui.task_table.setItem(index, 3, QTableWidgetItem(item[3]))
-            self._ui.task_table.setItem(index, 4, QTableWidgetItem(item[4]))
+            self._ui.task_table.setItem(index, 4, QTableWidgetItem(str(remaining)))
+            if remaining < 100:
+                self._ui.task_table.item(index, 4).setBackground(QColor(255, 0, 0))
+            self._ui.task_table.setItem(index, 5, QTableWidgetItem(item[4]))
+            if item[4] == 'In Progress':
+                self._ui.task_table.setCellWidget(index, 6, widget)
+            complete_btn.setProperty('complete_row', index)
+            cancel_btn.setProperty('cancel_row', index)
+            complete_btn.clicked.connect(self.on_cell_complete_button_clicked)
+            cancel_btn.clicked.connect(self.on_cell_cancel_button_clicked)
 
     def edit_mode_button_clicked(self):
         if self._is_edit_mode:
@@ -167,6 +233,17 @@ class App:
             self._ui.frame.setHidden(True)
             self._is_edit_mode = True
 
+    def start_job(self):
+        schedule.every().day.at("00:01").do(self.get_data)
+        while True:
+            if self.thread_stop:
+                break
+            schedule.run_pending()
+            time.sleep(1)
+
+    def job_thread(self):
+        self.t = Thread(target=self.start_job)
+        self.t.start()
 
 if __name__ == '__main__':
     app = App()
