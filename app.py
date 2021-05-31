@@ -144,7 +144,7 @@ class App(QObject):
             self._ui.task_table.setItem(index, 2, QTableWidgetItem(item[2]))
             self._ui.task_table.setItem(index, 3, QTableWidgetItem(item[3]))
             self._ui.task_table.setItem(index, 4, QTableWidgetItem(str(remaining)))
-            if remaining < 100:
+            if remaining < int(item[5]):
                 self._ui.task_table.item(index, 4).setBackground(QColor(255, 0, 0))
             self._ui.task_table.setItem(index, 5, QTableWidgetItem(item[4]))
             if item[4] == 'In Progress':
@@ -174,7 +174,8 @@ class App(QObject):
         task = self._ui.task_text.toPlainText()
         start_date = self._ui.start_date.text()
         end_date = self._ui.end_date.text()
-        self._data.add_item(task, start_date, end_date)
+        reminder = self._ui.reminder.text()
+        self._data.add_item(task, start_date, end_date, reminder)
         self.get_data()
         self.filter_box_text_changed(self._ui.filter_box.currentText())
 
@@ -213,7 +214,7 @@ class App(QObject):
             self._ui.task_table.setItem(index, 2, QTableWidgetItem(item[2]))
             self._ui.task_table.setItem(index, 3, QTableWidgetItem(item[3]))
             self._ui.task_table.setItem(index, 4, QTableWidgetItem(str(remaining)))
-            if remaining < 100:
+            if remaining < int(item[5]):
                 self._ui.task_table.item(index, 4).setBackground(QColor(255, 0, 0))
             self._ui.task_table.setItem(index, 5, QTableWidgetItem(item[4]))
             if item[4] == 'In Progress':

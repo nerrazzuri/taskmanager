@@ -14,8 +14,8 @@ class Data:
         self._cursor.execute('CREATE TABLE task_manager(id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, tasks TEXT, start DATE, end DATE, status TEXT)')
         self._connection.commit()
 
-    def add_item(self, task, start_date, end_date):
-        self._cursor.execute('INSERT INTO task_manager (tasks, start, end, status) VALUES ("{}", "{}", "{}", "{}")'.format(task, start_date, end_date, 'In Progress'))
+    def add_item(self, task, start_date, end_date, reminder):
+        self._cursor.execute('INSERT INTO task_manager (tasks, start, end, status, reminder) VALUES ("{}", "{}", "{}", "{}", "{}")'.format(task, start_date, end_date, 'In Progress', reminder))
         self._connection.commit()
 
     def update_item(self, task_id, status):

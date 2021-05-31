@@ -129,7 +129,62 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="2" column="2">
+       <item row="3" column="4">
+        <widget class="QToolButton" name="clear_item">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/resource/resources/icons/clear.png</normaloff>:/resource/resources/icons/clear.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="3">
+        <widget class="QToolButton" name="add_item">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/resource/resources/icons/check.png</normaloff>:/resource/resources/icons/check.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2" colspan="3">
+        <widget class="QDateEdit" name="end_date"/>
+       </item>
+       <item row="0" column="0" rowspan="4">
+        <widget class="QTextEdit" name="task_text"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QLabel" name="end_date_label">
+         <property name="text">
+          <string>End Date</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2" colspan="3">
+        <widget class="QDateEdit" name="start_date"/>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="start_date_label">
+         <property name="text">
+          <string>Start Date</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Reminder</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2" colspan="3">
+        <widget class="QSpinBox" name="reminder"/>
+       </item>
+       <item row="3" column="1" colspan="2">
         <spacer name="horizontalSpacer">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -144,51 +199,6 @@
           </size>
          </property>
         </spacer>
-       </item>
-       <item row="2" column="4">
-        <widget class="QToolButton" name="clear_item">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/resource/resources/icons/clear.png</normaloff>:/resource/resources/icons/clear.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0" rowspan="3">
-        <widget class="QTextEdit" name="task_text"/>
-       </item>
-       <item row="0" column="2" colspan="3">
-        <widget class="QDateEdit" name="start_date"/>
-       </item>
-       <item row="2" column="3">
-        <widget class="QToolButton" name="add_item">
-         <property name="text">
-          <string/>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/resource/resources/icons/check.png</normaloff>:/resource/resources/icons/check.png</iconset>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="2" colspan="3">
-        <widget class="QDateEdit" name="end_date"/>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="start_date_label">
-         <property name="text">
-          <string>Start Date</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="QLabel" name="end_date_label">
-         <property name="text">
-          <string>End Date</string>
-         </property>
-        </widget>
        </item>
       </layout>
      </widget>
